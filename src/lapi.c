@@ -523,9 +523,10 @@ LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
 }
 
 
+/* C Function压入栈，@n表示UpValue的数量 */
 LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
   lua_lock(L);
-  if (n == 0) {
+  if (n == 0) {//无UpValue，为light C Func
     setfvalue(L->top, fn);
   }
   else {
@@ -533,14 +534,14 @@ LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
     api_checknelems(L, n);
     api_check(n <= MAXUPVAL, "upvalue index too large");
     luaC_checkGC(L);
-    cl = luaF_newCclosure(L, n);
+    cl = luaF_newCclosure(L, n);/* 新建一个C闭包 */
     cl->f = fn;
     L->top -= n;
-    while (n--) {
+    while (n--) {/* 复制UpValue */
       setobj2n(L, &cl->upvalue[n], L->top + n);
       /* does not need barrier because closure is white */
     }
-    setclCvalue(L, L->top, cl);
+    setclCvalue(L, L->top, cl);/* 压入栈 */
   }
   api_incr_top(L);
   lua_unlock(L);

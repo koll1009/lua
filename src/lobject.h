@@ -275,7 +275,7 @@ typedef struct lua_TValue TValue;
 ** =======================================================
 */
 
-
+/* lua的类型，分为可回收类型和基本类型 */
 union Value {
   GCObject *gc;    /* collectable objects */
   void *p;         /* light userdata */
@@ -434,13 +434,14 @@ typedef struct UpVal UpVal;
 #define ClosureHeader \
 	CommonHeader; lu_byte nupvalues; GCObject *gclist
 
+/* C闭包的结构体，与light C function的区别在于拥有UpValue */
 typedef struct CClosure {
   ClosureHeader;
   lua_CFunction f;
   TValue upvalue[1];  /* list of upvalues */
 } CClosure;
 
-
+/* Lua闭包结构体 */
 typedef struct LClosure {
   ClosureHeader;
   struct Proto *p;

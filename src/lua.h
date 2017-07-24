@@ -55,15 +55,15 @@ typedef struct lua_State lua_State;
 
 
 /*
-** basic types
+** basic types 基本类型标识
 */
 #define LUA_TNONE		(-1)
 
-#define LUA_TNIL		0
-#define LUA_TBOOLEAN		1
-#define LUA_TLIGHTUSERDATA	2
-#define LUA_TNUMBER		3
-#define LUA_TSTRING		4
+#define LUA_TNIL		0        /* nil类型 */
+#define LUA_TBOOLEAN		1    /* 布尔类型 */
+#define LUA_TLIGHTUSERDATA	2    /* 轻型用户数据 */
+#define LUA_TNUMBER		3        /* 数字类型，分为整型、浮点类型 */
+#define LUA_TSTRING		4        /* 字符串类型 */
 #define LUA_TTABLE		5
 #define LUA_TFUNCTION		6
 #define LUA_TUSERDATA		7

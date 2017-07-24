@@ -21,11 +21,11 @@
 #include "lstate.h"
 
 
-
+/* 新建C闭包 */
 CClosure *luaF_newCclosure (lua_State *L, int n) {
   GCObject *o = luaC_newobj(L, LUA_TCCL, sizeCclosure(n));
   CClosure *c = gco2ccl(o);
-  c->nupvalues = cast_byte(n);
+  c->nupvalues = cast_byte(n);/* 设置UpValue数量 */
   return c;
 }
 

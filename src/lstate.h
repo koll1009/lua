@@ -175,7 +175,7 @@ struct lua_State {
 #define G(L)	(L->l_G)
 
 
-/*
+/* 所有可回收类型的Union，用于类型转换
 ** Union of all collectable objects (only for conversions)
 */
 union GCUnion {
