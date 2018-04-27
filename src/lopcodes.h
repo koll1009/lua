@@ -41,12 +41,18 @@ enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction format */
 #define SIZE_A		8
 #define SIZE_Ax		(SIZE_C + SIZE_B + SIZE_A)
 
-#define SIZE_OP		6
+#define SIZE_OP		6//操作符6位
+/* 32位instruction划分为4部分
+     B        C         A     opcode
+|---------|---------|--------|------|
+    9位       9位       8位      6位
+ 
+*/
 
 #define POS_OP		0
-#define POS_A		(POS_OP + SIZE_OP)
-#define POS_C		(POS_A + SIZE_A)
-#define POS_B		(POS_C + SIZE_C)
+#define POS_A		(POS_OP + SIZE_OP)//6
+#define POS_C		(POS_A + SIZE_A)//14
+#define POS_B		(POS_C + SIZE_C)//23
 #define POS_Bx		POS_C
 #define POS_Ax		POS_A
 

@@ -143,18 +143,18 @@ void luaE_shrinkCI (lua_State *L) {
   }
 }
 
-
+/* 初始化运行栈 */
 static void stack_init (lua_State *L1, lua_State *L) {
   int i; CallInfo *ci;
   /* initialize stack array */
-  L1->stack = luaM_newvector(L, BASIC_STACK_SIZE, TValue);
+  L1->stack = luaM_newvector(L, BASIC_STACK_SIZE, TValue);//分配栈内存，设置栈首尾位置
   L1->stacksize = BASIC_STACK_SIZE;
   for (i = 0; i < BASIC_STACK_SIZE; i++)
     setnilvalue(L1->stack + i);  /* erase new stack */
   L1->top = L1->stack;
   L1->stack_last = L1->stack + L1->stacksize - EXTRA_STACK;
   /* initialize first ci */
-  ci = &L1->base_ci;
+  ci = &L1->base_ci;//初始化第一个栈帧
   ci->next = ci->previous = NULL;
   ci->callstatus = 0;
   ci->func = L1->top;
@@ -173,13 +173,13 @@ static void freestack (lua_State *L) {
 }
 
 
-/*
+/* 创建注册表，注册表会预分配两个数组元素，一个用来保存主lua_state的地址，一个用来保存全局表
 ** Create registry table and its predefined values
 */
 static void init_registry (lua_State *L, global_State *g) {
   TValue temp;
   /* create registry */
-  Table *registry = luaH_new(L);
+  Table *registry = luaH_new(L);//创建注册表
   sethvalue(L, &g->l_registry, registry);
   luaH_resize(L, registry, LUA_RIDX_LAST, 0);
   /* registry[LUA_RIDX_MAINTHREAD] = L */
@@ -187,27 +187,27 @@ static void init_registry (lua_State *L, global_State *g) {
   luaH_setint(L, registry, LUA_RIDX_MAINTHREAD, &temp);
   /* registry[LUA_RIDX_GLOBALS] = table of globals */
   sethvalue(L, &temp, luaH_new(L));  /* temp = new table (global table) */
-  luaH_setint(L, registry, LUA_RIDX_GLOBALS, &temp);
+  luaH_setint(L, registry, LUA_RIDX_GLOBALS, &temp);//
 }
 
 
-/*
+/* 启动lua解释器
 ** open parts of the state that may cause memory-allocation errors.
 ** ('g->version' != NULL flags that the state was completely build)
 */
 static void f_luaopen (lua_State *L, void *ud) {
   global_State *g = G(L);
   UNUSED(ud);
-  stack_init(L, L);  /* init stack */
-  init_registry(L, g);
-  luaS_resize(L, MINSTRTABSIZE);  /* initial size of string table */
-  luaT_init(L);
-  luaX_init(L);
+  stack_init(L, L);  /* 初始化栈 init stack */
+  init_registry(L, g);/* 初始化注册表 */
+  luaS_resize(L, MINSTRTABSIZE);  /* 初始化字符串表 initial size of string table */
+  luaT_init(L);//初始化tm关键字
+  luaX_init(L);//初始化lua关键字
   /* pre-create memory-error message */
   g->memerrmsg = luaS_newliteral(L, MEMERRMSG);
   luaC_fix(L, obj2gco(g->memerrmsg));  /* it should never be collected */
   g->gcrunning = 1;  /* allow gc */
-  g->version = lua_version(NULL);
+  g->version = lua_version(NULL);//设置版本号
   luai_userstateopen(L);
 }
 
@@ -289,24 +289,24 @@ void luaE_freethread (lua_State *L, lua_State *L1) {
   luaM_free(L, l);
 }
 
-
+/* 创建主lua_State,每个lua解释器需要一个该对象，用于管理栈，函数栈等 */
 LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   int i;
   lua_State *L;
   global_State *g;
-  LG *l = cast(LG *, (*f)(ud, NULL, LUA_TTHREAD, sizeof(LG)));
+  LG *l = cast(LG *, (*f)(ud, NULL, LUA_TTHREAD, sizeof(LG)));//分配lua_state和global_state的内存，多个lua_state可以公用global_state
   if (l == NULL) return NULL;
   L = &l->l.l;
   g = &l->g;
   L->next = NULL;
-  L->tt = LUA_TTHREAD;
+  L->tt = LUA_TTHREAD;//设置类型
   g->currentwhite = bitmask(WHITE0BIT);
   L->marked = luaC_white(g);
   preinit_thread(L, g);
-  g->frealloc = f;
+  g->frealloc = f;//内存分配函数
   g->ud = ud;
   g->mainthread = L;
-  g->seed = makeseed(L);
+  g->seed = makeseed(L);//生成随机化种子
   g->gcrunning = 0;  /* no GC while building state */
   g->GCestimate = 0;
   g->strt.size = g->strt.nuse = 0;
@@ -328,7 +328,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->gcpause = LUAI_GCPAUSE;
   g->gcstepmul = LUAI_GCMUL;
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
-  if (luaD_rawrunprotected(L, f_luaopen, NULL) != LUA_OK) {
+  if (luaD_rawrunprotected(L, f_luaopen, NULL) != LUA_OK) {//调用f_luaopen启动解释器
     /* memory allocation error: free partial state */
     close_state(L);
     L = NULL;

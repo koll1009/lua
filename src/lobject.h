@@ -285,9 +285,9 @@ union Value {
   lua_Number n;    /* float numbers */
 };
 
-
+/* lua通用类型结构体 */
 struct lua_TValue {
-  TValuefields;
+  TValuefields;//类型分为4中基本类型和自动可回收类型
 };
 
 
@@ -392,28 +392,28 @@ typedef struct LocVar {
 } LocVar;
 
 
-/*
+/* lua函数原型结构体
 ** Function Prototypes
 */
 typedef struct Proto {
   CommonHeader;
-  lu_byte numparams;  /* number of fixed parameters */
-  lu_byte is_vararg;
-  lu_byte maxstacksize;  /* maximum stack used by this function */
-  int sizeupvalues;  /* size of 'upvalues' */
-  int sizek;  /* size of 'k' */
-  int sizecode;
+  lu_byte numparams;  /* 固定参数数量  number of fixed parameters */
+  lu_byte is_vararg;  /* 标志位，是否为变参函数 */
+  lu_byte maxstacksize;  /*该lua函数执行需要的栈的大小 maximum stack used by this function */
+  int sizeupvalues;  /* UpValue数组的size  size of 'upvalues' */
+  int sizek;  /* 常量数组的size size of 'k' */
+  int sizecode;/* 指令数组的size */
   int sizelineinfo;
-  int sizep;  /* size of 'p' */
-  int sizelocvars;
+  int sizep;  /* 子函数数组的size size of 'p' */
+  int sizelocvars;/* 局部变量数组的size */
   int linedefined;
   int lastlinedefined;
-  TValue *k;  /* constants used by the function */
-  Instruction *code;
-  struct Proto **p;  /* functions defined inside the function */
+  TValue *k;  /* 常量数组 constants used by the function */
+  Instruction *code;/* 指令数组 */
+  struct Proto **p;  /* 子函数数组 functions defined inside the function */
   int *lineinfo;  /* map from opcodes to source lines (debug information) */
-  LocVar *locvars;  /* information about local variables (debug information) */
-  Upvaldesc *upvalues;  /* upvalue information */
+  LocVar *locvars;  /* 局部变量数组 information about local variables (debug information) */
+  Upvaldesc *upvalues;  /* UpValue描述信息数组，因为UpValue可以共享值，所以使用该信息描述 upvauleupvalue information */
   struct LClosure *cache;  /* last created closure with this prototype */
   TString  *source;  /* used for debug information */
   GCObject *gclist;
@@ -444,7 +444,7 @@ typedef struct CClosure {
 /* Lua闭包结构体 */
 typedef struct LClosure {
   ClosureHeader;
-  struct Proto *p;
+  struct Proto *p;//函数原型
   UpVal *upvals[1];  /* list of upvalues */
 } LClosure;
 

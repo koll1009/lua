@@ -274,17 +274,17 @@ int luaK_codek (FuncState *fs, int reg, int k) {
   }
 }
 
-
+/* 检查栈的容量 */
 void luaK_checkstack (FuncState *fs, int n) {
   int newstack = fs->freereg + n;
-  if (newstack > fs->f->maxstacksize) {
+  if (newstack > fs->f->maxstacksize) {//如果超出栈的大小设置，则重新分配
     if (newstack >= MAXREGS)
       luaX_syntaxerror(fs->ls, "function or expression too complex");
     fs->f->maxstacksize = cast_byte(newstack);
   }
 }
 
-
+/* 预留分配@个寄存器位置 */
 void luaK_reserveregs (FuncState *fs, int n) {
   luaK_checkstack(fs, n);
   fs->freereg += n;
@@ -305,14 +305,14 @@ static void freeexp (FuncState *fs, expdesc *e) {
 }
 
 
-/*
+/* 添加常量，并返回常量的索引
 ** Use scanner's table to cache position of constants in constant list
 ** and try to reuse constants
 */
 static int addk (FuncState *fs, TValue *key, TValue *v) {
   lua_State *L = fs->ls->L;
   Proto *f = fs->f;
-  TValue *idx = luaH_set(L, fs->ls->h, key);  /* index scanner table */
+  TValue *idx = luaH_set(L, fs->ls->h, key);  /* 先检索常量表 index scanner table */
   int k, oldsize;
   if (ttisinteger(idx)) {  /* is there an index there? */
     k = cast_int(ivalue(idx));
@@ -335,7 +335,7 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
   return k;
 }
 
-
+/* 添加一个string常量，并返回索引值 */
 int luaK_stringK (FuncState *fs, TString *s) {
   TValue o;
   setsvalue(fs->ls->L, &o, s);
@@ -369,7 +369,7 @@ static int boolK (FuncState *fs, int b) {
   return addk(fs, &o, &o);
 }
 
-
+/* 添加nil常量，多余nil值，函数树共享同一个 */
 static int nilK (FuncState *fs) {
   TValue k, v;
   setnilvalue(&v);
@@ -390,11 +390,11 @@ void luaK_setreturns (FuncState *fs, expdesc *e, int nresults) {
   }
 }
 
-
+/*  */
 void luaK_setoneret (FuncState *fs, expdesc *e) {
   if (e->k == VCALL) {  /* expression is an open function call? */
     e->k = VNONRELOC;
-    e->u.info = GETARG_A(getcode(fs, e));
+    e->u.info = GETARG_A(getcode(fs, e));//返回值的第一个位置保存在A值里
   }
   else if (e->k == VVARARG) {
     SETARG_B(getcode(fs, e), 2);
@@ -402,19 +402,19 @@ void luaK_setoneret (FuncState *fs, expdesc *e) {
   }
 }
 
-
+/* 变量的处理，变量可能是局部变量、upvalue、成员变量或者变参或者函数返回值 */
 void luaK_dischargevars (FuncState *fs, expdesc *e) {
   switch (e->k) {
-    case VLOCAL: {
+    case VLOCAL: {//局部变量本身就在栈上，不需要重新分配
       e->k = VNONRELOC;
       break;
     }
-    case VUPVAL: {
+    case VUPVAL: {//Upvalue，生成get upvalue指令，需要分配接收方的地址
       e->u.info = luaK_codeABC(fs, OP_GETUPVAL, 0, e->u.info, 0);
       e->k = VRELOCABLE;
       break;
     }
-    case VINDEXED: {
+    case VINDEXED: {//成员变量，生成对应的get table或者get table upvalue指令，需要分配接收方的地址
       OpCode op = OP_GETTABUP;  /* assume 't' is in an upvalue */
       freereg(fs, e->u.ind.idx);
       if (e->u.ind.vt == VLOCAL) {  /* 't' is in a register? */
@@ -427,7 +427,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
     }
     case VVARARG:
     case VCALL: {
-      luaK_setoneret(fs, e);
+      luaK_setoneret(fs, e);//设置一个返回值
       break;
     }
     default: break;  /* there is one value available (somewhere) */
@@ -516,10 +516,11 @@ static void exp2reg (FuncState *fs, expdesc *e, int reg) {
 }
 
 
+/* 分配一个寄存器位置，用于保存表达式@e */
 void luaK_exp2nextreg (FuncState *fs, expdesc *e) {
   luaK_dischargevars(fs, e);
   freeexp(fs, e);
-  luaK_reserveregs(fs, 1);
+  luaK_reserveregs(fs, 1);//分配1个寄存器位置
   exp2reg(fs, e, fs->freereg - 1);
 }
 
@@ -537,7 +538,7 @@ int luaK_exp2anyreg (FuncState *fs, expdesc *e) {
   return e->u.info;
 }
 
-
+/* 生成指令，目标为Upvalue值或者寄存器值 */
 void luaK_exp2anyregup (FuncState *fs, expdesc *e) {
   if (e->k != VUPVAL || hasjumps(e))
     luaK_exp2anyreg(fs, e);
@@ -551,7 +552,7 @@ void luaK_exp2val (FuncState *fs, expdesc *e) {
     luaK_dischargevars(fs, e);
 }
 
-
+/* 根据表达式@e生成指令，指令对应的可以是寄存器上的索引，也可以是常量数组中的索引 */
 int luaK_exp2RK (FuncState *fs, expdesc *e) {
   luaK_exp2val(fs, e);
   switch (e->k) {
@@ -732,11 +733,11 @@ static void codenot (FuncState *fs, expdesc *e) {
   removevalues(fs, e->t);
 }
 
-
+/* 生成取成员值的指令，t为table的表达式，k为成员key的表达式 */
 void luaK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
   lua_assert(!hasjumps(t));
-  t->u.ind.t = t->u.info;
-  t->u.ind.idx = luaK_exp2RK(fs, k);
+  t->u.ind.t = t->u.info;//table的索引，Upvalue数组中的 or 寄存器中
+  t->u.ind.idx = luaK_exp2RK(fs, k);//把
   t->u.ind.vt = (t->k == VUPVAL) ? VUPVAL
                                  : check_exp(vkisinreg(t->k), VLOCAL);
   t->k = VINDEXED;

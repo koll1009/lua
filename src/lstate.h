@@ -53,7 +53,7 @@ typedef struct stringtable {
 } stringtable;
 
 
-/*
+/* 栈帧，函数调用的信息
 ** Information about a call.
 ** When a thread yields, 'func' is adjusted to pretend that the
 ** top function has only the yielded values in its stack; in that
@@ -63,11 +63,11 @@ typedef struct stringtable {
 ** function can be called with the correct top.
 */
 typedef struct CallInfo {
-  StkId func;  /* function index in the stack */
+  StkId func;  /* 函数的指针 function index in the stack */
   StkId	top;  /* top for this function */
   struct CallInfo *previous, *next;  /* dynamic call link */
   union {
-    struct {  /* only for Lua functions */
+    struct {  /* lua函数使用 only for Lua functions */
       StkId base;  /* base for this function */
       const Instruction *savedpc;
     } l;
@@ -78,7 +78,7 @@ typedef struct CallInfo {
     } c;
   } u;
   ptrdiff_t extra;
-  short nresults;  /* expected number of results from this function */
+  short nresults;  /* 返回值的个数 expected number of results from this function */
   lu_byte callstatus;
 } CallInfo;
 
@@ -153,8 +153,8 @@ struct lua_State {
   global_State *l_G;
   CallInfo *ci;  /* call info for current function */
   const Instruction *oldpc;  /* last pc traced */
-  StkId stack_last;  /* last free slot in the stack */
-  StkId stack;  /* stack base */
+  StkId stack_last;  /* 栈尾指针last free slot in the stack */
+  StkId stack;  /* 基栈指针stack base */
   UpVal *openupval;  /* list of open upvalues in this stack */
   GCObject *gclist;
   struct lua_State *twups;  /* list of threads with open upvalues */
@@ -162,7 +162,7 @@ struct lua_State {
   CallInfo base_ci;  /* CallInfo for first level (C calling Lua) */
   lua_Hook hook;
   ptrdiff_t errfunc;  /* current error handling function (stack index) */
-  int stacksize;
+  int stacksize;//栈的大小
   int basehookcount;
   int hookcount;
   unsigned short nny;  /* number of non-yieldable calls in stack */

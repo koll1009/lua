@@ -19,7 +19,7 @@
 #endif
 
 
-/*
+/* lua关键字类型
 * WARNING: if you change the order of this enumeration,
 * grep "ORDER RESERVED"
 */
@@ -33,7 +33,7 @@ enum RESERVED {
   TK_IDIV, TK_CONCAT, TK_DOTS, TK_EQ, TK_GE, TK_LE, TK_NE,
   TK_SHL, TK_SHR,
   TK_DBCOLON, TK_EOS,
-  TK_FLT, TK_INT, TK_NAME, TK_STRING
+  TK_FLT, TK_INT, TK_NAME/* 变量名 */, TK_STRING
 };
 
 /* number of reserved words */
@@ -46,20 +46,20 @@ typedef union {
   TString *ts;
 } SemInfo;  /* semantics information */
 
-
+/* lua代码关键字结构体 */
 typedef struct Token {
-  int token;
-  SemInfo seminfo;
+  int token;//关键字类型
+  SemInfo seminfo;//关键字的值
 } Token;
 
 
-/* state of the lexer plus state of the parser when shared by all
+/* lua代码词法分析树结构体state of the lexer plus state of the parser when shared by all
    functions */
 typedef struct LexState {
-  int current;  /* current character (charint) */
+  int current;  /* 词法解析树解析到的当前字符 current character (charint) */
   int linenumber;  /* input line counter */
   int lastline;  /* line of last token 'consumed' */
-  Token t;  /* current token */
+  Token t;  /* 当前解析出的关键字current token */
   Token lookahead;  /* look ahead token */
   struct FuncState *fs;  /* current function (parser) */
   struct lua_State *L;

@@ -485,7 +485,7 @@ lua_Integer luaV_shiftl (lua_Integer x, lua_Integer y) {
 }
 
 
-/*
+/* 
 ** check whether cached closure in prototype 'p' may be reused, that is,
 ** whether there is a cached closure with the same upvalues needed by
 ** new closure to be created.

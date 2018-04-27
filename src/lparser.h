@@ -16,12 +16,13 @@
 ** Expression descriptor
 */
 
+/* 表达式类型，以及不同类型下，expdesc结构体成员的意义 */
 typedef enum {
   VVOID,	/* no value */
-  VNIL,
-  VTRUE,
+  VNIL,     //nil类型
+  VTRUE,    //bool值，true or false
   VFALSE,
-  VK,		/* info = index of constant in 'k' */
+  VK,		/* 常量值，info = index of constant in 'k' */
   VKFLT,	/* nval = numerical float value */
   VKINT,	/* nval = numerical integer value */
   VNONRELOC,	/* info = result register */
@@ -38,8 +39,9 @@ typedef enum {
 #define vkisvar(k)	(VLOCAL <= (k) && (k) <= VINDEXED)
 #define vkisinreg(k)	((k) == VNONRELOC || (k) == VLOCAL)
 
+/* lua代码表达式描述符 */
 typedef struct expdesc {
-  expkind k;
+  expkind k;//表达式类型
   union {
     struct {  /* for indexed variables (VINDEXED) */
       short idx;  /* index (R/K) */
@@ -81,7 +83,7 @@ typedef struct Labellist {
 /* dynamic structures used by the parser */
 typedef struct Dyndata {
   struct {  /* list of active local variables */
-    Vardesc *arr;
+    Vardesc *arr;//局部变量描述信息结构体数组，指明局部变量在栈上的索引
     int n;
     int size;
   } actvar;
@@ -94,7 +96,7 @@ typedef struct Dyndata {
 struct BlockCnt;  /* defined in lparser.c */
 
 
-/* state needed to generate code for a given function */
+/* 解析lua函数时使用的状态结构体 state needed to generate code for a given function */
 typedef struct FuncState {
   Proto *f;  /* current function header */
   struct FuncState *prev;  /* enclosing function */

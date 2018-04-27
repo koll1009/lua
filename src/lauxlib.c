@@ -503,7 +503,7 @@ LUALIB_API void luaL_addvalue (luaL_Buffer *B) {
   lua_remove(L, (buffonstack(B)) ? -2 : -1);  /* remove value */
 }
 
-
+/* 初始化lua buffer */
 LUALIB_API void luaL_buffinit (lua_State *L, luaL_Buffer *B) {
   B->L = L;
   B->b = B->initb;
@@ -569,7 +569,7 @@ LUALIB_API void luaL_unref (lua_State *L, int t, int ref) {
 ** Load functions
 ** =======================================================
 */
-
+/* loadfile执行io reader操作时，需要的参数结构体 */
 typedef struct LoadF {
   int n;  /* number of pre-read characters */
   FILE *f;  /* file being read */
@@ -588,7 +588,8 @@ static const char *getF (lua_State *L, void *ud, size_t *size) {
     /* 'fread' can return > 0 *and* set the EOF flag. If next call to
        'getF' called 'fread', it might still wait for user input.
        The next check avoids this problem. */
-    if (feof(lf->f)) return NULL;
+    if (feof(lf->f)) 
+		return NULL;
     *size = fread(lf->buff, 1, sizeof(lf->buff), lf->f);  /* read block */
   }
   return lf->buff;

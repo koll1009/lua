@@ -525,7 +525,7 @@ static int searcher_preload (lua_State *L) {
   return 1;
 }
 
-
+/* 程序包加载器 */
 static void findloader (lua_State *L, const char *name) {
   int i;
   luaL_Buffer msg;  /* to build error message */
@@ -553,11 +553,11 @@ static void findloader (lua_State *L, const char *name) {
   }
 }
 
-
+/* require函数的c实现 */
 static int ll_require (lua_State *L) {
-  const char *name = luaL_checkstring(L, 1);
+  const char *name = luaL_checkstring(L, 1);//require的参数必须为字符串
   lua_settop(L, 1);  /* _LOADED table will be at index 2 */
-  lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
+  lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");//取_LOADED table
   lua_getfield(L, 2, name);  /* _LOADED[name] */
   if (lua_toboolean(L, -1))  /* is it there? */
     return 1;  /* package is already loaded */
@@ -758,7 +758,7 @@ static void createclibstable (lua_State *L) {
   lua_rawsetp(L, LUA_REGISTRYINDEX, &CLIBS);  /* set CLIBS table in registry */
 }
 
-
+/* 加载package */
 LUAMOD_API int luaopen_package (lua_State *L) {
   createclibstable(L);
   luaL_newlib(L, pk_funcs);  /* create 'package' table */

@@ -22,7 +22,7 @@
 #define isintwups(L)	(L->twups != L)
 
 
-/*
+/* Upvalue½á¹¹Ìå
 ** Upvalues for Lua closures
 */
 struct UpVal {

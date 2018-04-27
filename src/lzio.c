@@ -19,7 +19,7 @@
 #include "lstate.h"
 #include "lzio.h"
 
-
+/* 执行ZIO的fill操作，即调用read函数 */
 int luaZ_fill (ZIO *z) {
   size_t size;
   lua_State *L = z->L;
@@ -27,14 +27,14 @@ int luaZ_fill (ZIO *z) {
   lua_unlock(L);
   buff = z->reader(L, z->data, &size);
   lua_lock(L);
-  if (buff == NULL || size == 0)
+  if (buff == NULL || size == 0)//返回EOZ标识字节尾
     return EOZ;
   z->n = size - 1;  /* discount char being returned */
   z->p = buff;
   return cast_uchar(*(z->p++));
 }
 
-
+/* io结构体zio的初始化函数 */
 void luaZ_init (lua_State *L, ZIO *z, lua_Reader reader, void *data) {
   z->L = L;
   z->reader = reader;

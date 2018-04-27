@@ -27,7 +27,7 @@
 #include "lzio.h"
 
 
-
+/* 词法解析树读取下一个待解析的字符 */
 #define next(ls) (ls->current = zgetc(ls->z))
 
 
@@ -159,7 +159,7 @@ static void inclinenumber (LexState *ls) {
     lexerror(ls, "chunk has too many lines", 0);
 }
 
-
+/* 词法解析树初始化 */
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
   ls->t.token = 0;
@@ -184,7 +184,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
 ** =======================================================
 */
 
-
+/* 检查lua代码的下一个字符是否为@c */
 static int check_next1 (LexState *ls, int c) {
   if (ls->current == c) {
     next(ls);
@@ -463,7 +463,7 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
                                    luaZ_bufflen(ls->buff) - 2);
 }
 
-
+/* lua关键字解析 */
 static int llex (LexState *ls, SemInfo *seminfo) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {

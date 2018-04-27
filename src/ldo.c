@@ -657,15 +657,15 @@ int luaD_pcall (lua_State *L, Pfunc func, void *u,
 
 
 
-/*
+/* 解析lua代码的结构体
 ** Execute a protected parser.
 */
 struct SParser {  /* data to 'f_parser' */
-  ZIO *z;
-  Mbuffer buff;  /* dynamic structure used by the scanner */
+  ZIO *z;//指定了io操作的函数的结构体
+  Mbuffer buff;  /* 用于保存动态分析出的词法关键字 dynamic structure used by the scanner */
   Dyndata dyd;  /* dynamic structures used by the parser */
-  const char *mode;
-  const char *name;
+  const char *mode;//文件加载的格式
+  const char *name;//如果解析的内容来自lua文件，name则为文件名
 };
 
 
@@ -677,24 +677,24 @@ static void checkmode (lua_State *L, const char *mode, const char *x) {
   }
 }
 
-
+/* lua代码解析函数 */
 static void f_parser (lua_State *L, void *ud) {
   LClosure *cl;
   struct SParser *p = cast(struct SParser *, ud);
-  int c = zgetc(p->z);  /* read first character */
-  if (c == LUA_SIGNATURE[0]) {
+  int c = zgetc(p->z);  /* 读取第一个lua代码字符 read first character */
+  if (c == LUA_SIGNATURE[0]) {//二进制字节
     checkmode(L, p->mode, "binary");
     cl = luaU_undump(L, p->z, &p->buff, p->name);
   }
-  else {
+  else {//文本字符
     checkmode(L, p->mode, "text");
-    cl = luaY_parser(L, p->z, &p->buff, &p->dyd, p->name, c);
+    cl = luaY_parser(L, p->z, &p->buff, &p->dyd, p->name, c);//执行解析操作
   }
   lua_assert(cl->nupvalues == cl->p->sizeupvalues);
   luaF_initupvals(L, cl);
 }
 
-
+/* 受保护的lua代码解析函数 */
 int luaD_protectedparser (lua_State *L, ZIO *z, const char *name,
                                         const char *mode) {
   struct SParser p;

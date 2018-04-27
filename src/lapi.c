@@ -57,19 +57,20 @@ const char lua_ident[] =
 	api_check(isstackindex(i, o), "index not in the stack")
 
 
+/* 取@idx索引出的lua value */
 static TValue *index2addr (lua_State *L, int idx) {
   CallInfo *ci = L->ci;
-  if (idx > 0) {
+  if (idx > 0) {//idx为正，则从当前运行函数的栈栈帧内取值
     TValue *o = ci->func + idx;
     api_check(idx <= ci->top - (ci->func + 1), "unacceptable index");
-    if (o >= L->top) return NONVALIDVALUE;
+    if (o >= L->top) return NONVALIDVALUE;//超出栈的索引
     else return o;
   }
-  else if (!ispseudo(idx)) {  /* negative index */
+  else if (!ispseudo(idx)) {  /* idx为负值，则从当前栈顶以"出栈"算法取值 negative index */
     api_check(idx != 0 && -idx <= L->top - (ci->func + 1), "invalid index");
     return L->top + idx;
   }
-  else if (idx == LUA_REGISTRYINDEX)
+  else if (idx == LUA_REGISTRYINDEX)//返回注册表
     return &G(L)->l_registry;
   else {  /* upvalues */
     idx = LUA_REGISTRYINDEX - idx;
@@ -601,6 +602,8 @@ LUA_API int lua_gettable (lua_State *L, int idx) {
 }
 
 
+/* @idx为table的索引，@k为key string，从table@idx中取key=@k的value
+ */
 LUA_API int lua_getfield (lua_State *L, int idx, const char *k) {
   StkId t;
   lua_lock(L);
