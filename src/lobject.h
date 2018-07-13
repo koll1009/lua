@@ -79,7 +79,7 @@ typedef struct GCObject GCObject;
 #define CommonHeader	GCObject *next; lu_byte tt; lu_byte marked
 
 
-/*
+/* 自动回收类型对象结构体
 ** Common type has only the common header
 */
 struct GCObject {
@@ -109,7 +109,7 @@ typedef union Value {
 
 #define TValuefields	Value value_; int tt_
 
-
+/* lua的c解释其中最小单元，由value和type*/
 typedef struct lua_TValue {
   TValuefields;
 } TValue;
@@ -380,17 +380,17 @@ typedef union UUdata {
 	  checkliveness(L,io); }
 
 
-/*
+/* 函数原型中 up value描述符
 ** Description of an upvalue for function prototypes
 */
 typedef struct Upvaldesc {
   TString *name;  /* upvalue name (for debug information) */
-  lu_byte instack;  /* whether it is in stack (register) */
+  lu_byte instack;  /* 标识符，是否在栈上 whether it is in stack (register) */
   lu_byte idx;  /* index of upvalue (in stack or in outer function's list) */
 } Upvaldesc;
 
 
-/*
+/* 函数原型中的局部变量描述符
 ** Description of a local variable for function prototypes
 ** (used for debug information)
 */
@@ -471,7 +471,7 @@ typedef union Closure {
 /*
 ** Tables
 */
-
+/* 哈希表节点中key的数据结构 */
 typedef union TKey {
   struct {
     TValuefields;
@@ -487,13 +487,13 @@ typedef union TKey {
 	  k_->nk.value_ = io_->value_; k_->nk.tt_ = io_->tt_; \
 	  (void)L; checkliveness(L,io_); }
 
-
+/* table中哈希表节点 */
 typedef struct Node {
   TValue i_val;
   TKey i_key;
 } Node;
 
-
+/* lua中table类型对应的c中的结构体，table中分为数组部分和哈希表部分，分别用array和node来表示 */
 typedef struct Table {
   CommonHeader;
   lu_byte flags;  /* 1<<p means tagmethod(p) is not present */

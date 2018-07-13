@@ -201,16 +201,16 @@ void luaC_fix (lua_State *L, GCObject *o) {
 }
 
 
-/*
+/* 创建自动回收类型对象
 ** create a new collectable object (with given type and size) and link
 ** it to 'allgc' list.
 */
 GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
   global_State *g = G(L);
   GCObject *o = cast(GCObject *, luaM_newobject(L, novariant(tt), sz));
-  o->marked = luaC_white(g);
-  o->tt = tt;
-  o->next = g->allgc;
+  o->marked = luaC_white(g);//标记为白色
+  o->tt = tt;//对象类型
+  o->next = g->allgc;//添加到全局的可回收链表
   g->allgc = o;
   return o;
 }

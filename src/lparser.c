@@ -132,11 +132,12 @@ static void check_match (LexState *ls, int what, int who, int where) {
 }
 
 
+/* 变量名检查 */
 static TString *str_checkname (LexState *ls) {
   TString *ts;
   check(ls, TK_NAME);
   ts = ls->t.seminfo.ts;
-  luaX_next(ls);
+  luaX_next(ls);//取下一个关键字
   return ts;
 }
 
@@ -157,7 +158,7 @@ static void checkname (LexState *ls, expdesc *e) {
   codestring(ls, e, str_checkname(ls));
 }
 
-
+/* 在函数原型中注册一个局部变量 */
 static int registerlocalvar (LexState *ls, TString *varname) {
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -167,19 +168,20 @@ static int registerlocalvar (LexState *ls, TString *varname) {
   while (oldsize < f->sizelocvars) f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->nlocvars].varname = varname;
   luaC_objbarrier(ls->L, f, varname);
-  return fs->nlocvars++;
+  return fs->nlocvars++;//返回索引
 }
 
 
+/* 函数原型中新增一个局部变量 */
 static void new_localvar (LexState *ls, TString *name) {
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
-  int reg = registerlocalvar(ls, name);
+  int reg = registerlocalvar(ls, name);//先在函数原型中注册
   checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
                   MAXVARS, "local variables");
   luaM_growvector(ls->L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, MAX_INT, "local variables");
-  dyd->actvar.arr[dyd->actvar.n++].idx = cast(short, reg);
+  dyd->actvar.arr[dyd->actvar.n++].idx = cast(short, reg);//在动态结构中保存
 }
 
 
@@ -200,8 +202,8 @@ static LocVar *getlocvar (FuncState *fs, int i) {
 
 static void adjustlocalvars (LexState *ls, int nvars) {
   FuncState *fs = ls->fs;
-  fs->nactvar = cast_byte(fs->nactvar + nvars);
-  for (; nvars; nvars--) {
+  fs->nactvar = cast_byte(fs->nactvar + nvars);//增加计数
+  for (; nvars; nvars--) {//设置有效作用域的起始位置  
     getlocvar(fs, fs->nactvar - nvars)->startpc = fs->pc;
   }
 }
@@ -214,6 +216,7 @@ static void removevars (FuncState *fs, int tolevel) {
 }
 
 
+/* 搜索UpValue表 */
 static int searchupvalue (FuncState *fs, TString *name) {
   int i;
   Upvaldesc *up = fs->f->upvalues;
@@ -223,7 +226,7 @@ static int searchupvalue (FuncState *fs, TString *name) {
   return -1;  /* not found */
 }
 
-
+/* 新建一个upvalue */
 static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
   Proto *f = fs->f;
   int oldsize = f->sizeupvalues;
@@ -239,6 +242,7 @@ static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
 }
 
 
+/* 查找局部变量@n */
 static int searchvar (FuncState *fs, TString *n) {
   int i;
   for (i = cast_int(fs->nactvar) - 1; i >= 0; i--) {
@@ -249,7 +253,7 @@ static int searchvar (FuncState *fs, TString *n) {
 }
 
 
-/*
+/* 添加有Upvalue标记
   Mark block where variable at given level was defined
   (to emit close instructions later).
 */
@@ -260,7 +264,7 @@ static void markupval (FuncState *fs, int level) {
 }
 
 
-/*
+/* 局部变量搜索
   Find variable with given name 'n'. If it is an upvalue, add this
   upvalue into all intermediate functions.
 */
@@ -271,7 +275,7 @@ static int singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
     int v = searchvar(fs, n);  /* look up locals at current level */
     if (v >= 0) {  /* found? */
       init_exp(var, VLOCAL, v);  /* variable is local */
-      if (!base)
+      if (!base) //如果从上层func来的，则比较为up value
         markupval(fs, v);  /* local will be used as an upval */
       return VLOCAL;
     }
@@ -290,8 +294,9 @@ static int singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
 }
 
 
+/* 局部变量名的解析 */
 static void singlevar (LexState *ls, expdesc *var) {
-  TString *varname = str_checkname(ls);
+  TString *varname = str_checkname(ls);//取变量名
   FuncState *fs = ls->fs;
   if (singlevaraux(fs, varname, var, 1) == VVOID) {  /* global name? */
     expdesc key;
@@ -1437,15 +1442,17 @@ static void localfunc (LexState *ls) {
 }
 
 
+/* local var定义语句解析 */
 static void localstat (LexState *ls) {
   /* stat -> LOCAL NAME {',' NAME} ['=' explist] */
-  int nvars = 0;
+  int nvars = 0;//定义的变量
   int nexps;
   expdesc e;
   do {
-    new_localvar(ls, str_checkname(ls));
+    new_localvar(ls, str_checkname(ls));//新建一个局部变量
     nvars++;
   } while (testnext(ls, ','));
+
   if (testnext(ls, '='))
     nexps = explist(ls, &e);
   else {
@@ -1453,7 +1460,7 @@ static void localstat (LexState *ls) {
     nexps = 0;
   }
   adjust_assign(ls, nvars, nexps, &e);
-  adjustlocalvars(ls, nvars);
+  adjustlocalvars(ls, nvars);//调整局部变量
 }
 
 

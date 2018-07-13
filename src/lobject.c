@@ -59,7 +59,7 @@ int luaO_fb2int (int x) {
 }
 
 
-/*
+/* 计算以2为低的指数
 ** Computes ceil(log2(x))
 */
 int luaO_ceillog2 (unsigned int x) {

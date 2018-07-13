@@ -306,7 +306,7 @@ static void setarrayvector (lua_State *L, Table *t, unsigned int size) {
   t->sizearray = size;
 }
 
-
+/* 设置哈希表的初始化大小 */
 static void setnodevector (lua_State *L, Table *t, unsigned int size) {
   int lsize;
   if (size == 0) {  /* no elements to hash part? */
@@ -315,12 +315,12 @@ static void setnodevector (lua_State *L, Table *t, unsigned int size) {
   }
   else {
     int i;
-    lsize = luaO_ceillog2(size);
+    lsize = luaO_ceillog2(size);//计算长度，长度为2的指数值
     if (lsize > MAXHBITS)
       luaG_runerror(L, "table overflow");
     size = twoto(lsize);
-    t->node = luaM_newvector(L, size, Node);
-    for (i = 0; i < (int)size; i++) {
+    t->node = luaM_newvector(L, size, Node);//分配Node数组
+    for (i = 0; i < (int)size; i++) {//初始化哈希节点
       Node *n = gnode(t, i);
       gnext(n) = 0;
       setnilvalue(wgkey(n));
@@ -401,18 +401,20 @@ static void rehash (lua_State *L, Table *t, const TValue *ek) {
 */
 
 
+/* 创建Table */
 Table *luaH_new (lua_State *L) {
   GCObject *o = luaC_newobj(L, LUA_TTABLE, sizeof(Table));
   Table *t = gco2t(o);
-  t->metatable = NULL;
+  t->metatable = NULL;//metatable为空
   t->flags = cast_byte(~0);
   t->array = NULL;
   t->sizearray = 0;
-  setnodevector(L, t, 0);
+  setnodevector(L, t, 0);//设置哈希表的初始化大小
   return t;
 }
 
 
+/* 释放table */
 void luaH_free (lua_State *L, Table *t) {
   if (!isdummy(t->node))
     luaM_freearray(L, t->node, cast(size_t, sizenode(t)));
@@ -564,7 +566,7 @@ const TValue *luaH_getstr (Table *t, TString *key) {
 }
 
 
-/*
+/* 搜索table
 ** main search function
 */
 const TValue *luaH_get (Table *t, const TValue *key) {
