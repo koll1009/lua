@@ -83,6 +83,7 @@
 #define markvalue(g,o) { checkconsistency(o); \
   if (valiswhite(o)) reallymarkobject(g,gcvalue(o)); }
 
+//iswhite判断是为了不重复标记
 #define markobject(g,t)	{ if (iswhite(t)) reallymarkobject(g, obj2gco(t)); }
 
 /*
@@ -226,7 +227,7 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 */
 
 
-/*
+/* 对象标记
 ** mark an object. Userdata, strings, and closed upvalues are visited
 ** and turned black here. Other objects are marked gray and added
 ** to appropriate list to be visited (and turned black) later. (Open
@@ -234,9 +235,9 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 */
 static void reallymarkobject (global_State *g, GCObject *o) {
  reentry:
-  white2gray(o);
+  white2gray(o);//标记为灰色
   switch (o->tt) {
-    case LUA_TSHRSTR: {
+    case LUA_TSHRSTR: { //对于string、userdata，因为其不涉及子object，所以直接标记为黑色
       gray2black(o);
       g->GCmemtrav += sizelstring(gco2ts(o)->shrlen);
       break;
@@ -258,7 +259,7 @@ static void reallymarkobject (global_State *g, GCObject *o) {
       }
       break;
     }
-    case LUA_TLCL: {
+    case LUA_TLCL: {//function、table、thread、proto添加到gray list中，其子对象也会被标记
       linkgclist(gco2lcl(o), g->gray);
       break;
     }
@@ -331,16 +332,16 @@ static void remarkupvals (global_State *g) {
 }
 
 
-/*
+/* 标记根节点，全局注册表、主线程、基本类型的元表，可以视此3项为活跃的待保留对象
 ** mark root set and reset all gray lists, to start a new collection
 */
 static void restartcollection (global_State *g) {
   g->gray = g->grayagain = NULL;
   g->weak = g->allweak = g->ephemeron = NULL;
-  markobject(g, g->mainthread);
+  markobject(g, g->mainthread);//标记主线程和注册表
   markvalue(g, &g->l_registry);
-  markmt(g);
-  markbeingfnz(g);  /* mark any finalizing object left from previous cycle */
+  markmt(g);//标记基本类型的metatable
+  markbeingfnz(g);  /* 标记正在析构的对象 mark any finalizing object left from previous cycle */
 }
 
 /* }====================================================== */
@@ -352,7 +353,7 @@ static void restartcollection (global_State *g) {
 ** =======================================================
 */
 
-/*
+/* 以weak value的模式遍历标记table的节点
 ** Traverse a table with weak values and link it to proper list. During
 ** propagate phase, keep it in 'grayagain' list, to be revisited in the
 ** atomic phase. In the atomic phase, if table has any white value,
@@ -448,10 +449,13 @@ static void traversestrongtable (global_State *g, Table *h) {
 }
 
 
+/* 遍历标记table的子对象，即key、value */
 static lu_mem traversetable (global_State *g, Table *h) {
   const char *weakkey, *weakvalue;
   const TValue *mode = gfasttm(g, h->metatable, TM_MODE);
-  markobjectN(g, h->metatable);
+  markobjectN(g, h->metatable);//标记table的元表
+  
+  /* table 可以设置weak mode */
   if (mode && ttisstring(mode) &&  /* is there a weak mode? */
       ((weakkey = strchr(svalue(mode), 'k')),
        (weakvalue = strchr(svalue(mode), 'v')),
@@ -552,7 +556,7 @@ static lu_mem traversethread (global_State *g, lua_State *th) {
 }
 
 
-/*
+/* 遍历一个灰度对象的子对象进行标记
 ** traverse one gray object, turning it to black (except for threads,
 ** which are always gray).
 */
@@ -561,7 +565,7 @@ static void propagatemark (global_State *g) {
   GCObject *o = g->gray;
   lua_assert(isgray(o));
   gray2black(o);
-  switch (o->tt) {
+  switch (o->tt) {//只有table、closure、thread、proto有子对象的才会进行此操作
     case LUA_TTABLE: {
       Table *h = gco2t(o);
       g->gray = h->gclist;  /* remove from 'gray' list */
@@ -1045,16 +1049,17 @@ static lu_mem sweepstep (lua_State *L, global_State *g,
 }
 
 
+/* gc的单步操作 */
 static lu_mem singlestep (lua_State *L) {
   global_State *g = G(L);
   switch (g->gcstate) {
     case GCSpause: {
       g->GCmemtrav = g->strt.size * sizeof(GCObject*);
-      restartcollection(g);
-      g->gcstate = GCSpropagate;
+      restartcollection(g);//初始化gc操作，初始化操作中，会对几个全局量做标记，被标记的对象不会释放
+      g->gcstate = GCSpropagate;//设置gc状态
       return g->GCmemtrav;
     }
-    case GCSpropagate: {
+    case GCSpropagate: {//上一阶段标记了root对象，该阶段会对root对象的子对象进行递归标记
       g->GCmemtrav = 0;
       lua_assert(g->gray);
       propagatemark(g);

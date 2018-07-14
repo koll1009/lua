@@ -588,7 +588,7 @@ lua_Integer luaV_shiftl (lua_Integer x, lua_Integer y) {
 }
 
 
-/*
+/* 取缓存的Closure
 ** check whether cached closure in prototype 'p' may be reused, that is,
 ** whether there is a cached closure with the same upvalues needed by
 ** new closure to be created.
@@ -599,7 +599,7 @@ static LClosure *getcached (Proto *p, UpVal **encup, StkId base) {
     int nup = p->sizeupvalues;
     Upvaldesc *uv = p->upvalues;
     int i;
-    for (i = 0; i < nup; i++) {  /* check whether it has right upvalues */
+    for (i = 0; i < nup; i++) {  /* 检查Upvalue check whether it has right upvalues */
       TValue *v = uv[i].instack ? base + uv[i].idx : encup[uv[i].idx]->v;
       if (c->upvals[i]->v != v)
         return NULL;  /* wrong upvalue; cannot reuse closure */
@@ -609,7 +609,7 @@ static LClosure *getcached (Proto *p, UpVal **encup, StkId base) {
 }
 
 
-/*
+/* 创建一个新的闭包
 ** create a new Lua closure, push it in the stack, and initialize
 ** its upvalues. Note that the closure is not cached if prototype is
 ** already black (which means that 'cache' was already cleared by the
@@ -620,7 +620,7 @@ static void pushclosure (lua_State *L, Proto *p, UpVal **encup, StkId base,
   int nup = p->sizeupvalues;
   Upvaldesc *uv = p->upvalues;
   int i;
-  LClosure *ncl = luaF_newLclosure(L, nup);
+  LClosure *ncl = luaF_newLclosure(L, nup);//新建闭包
   ncl->p = p;
   setclLvalue(L, ra, ncl);  /* anchor new closure in stack */
   for (i = 0; i < nup; i++) {  /* fill in its upvalues */
@@ -1263,9 +1263,9 @@ void luaV_execute (lua_State *L) {
         L->top = ci->top;  /* correct top (in case of previous open call) */
         vmbreak;
       }
-      vmcase(OP_CLOSURE) {
-        Proto *p = cl->p->p[GETARG_Bx(i)];
-        LClosure *ncl = getcached(p, cl->upvals, base);  /* cached closure */
+      vmcase(OP_CLOSURE) {//指令，生成Lua Closure
+        Proto *p = cl->p->p[GETARG_Bx(i)];//
+        LClosure *ncl = getcached(p, cl->upvals, base);  /* 先去缓存的Closure cached closure */
         if (ncl == NULL)  /* no match? */
           pushclosure(L, p, cl->upvals, base, ra);  /* create a new one */
         else

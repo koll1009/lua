@@ -15,7 +15,7 @@
 /*
 ** Expression descriptor
 */
-
+/* 表达式类型 */
 typedef enum {
   VVOID,	/* no value */
   VNIL,
@@ -26,7 +26,7 @@ typedef enum {
   VKINT,	/* nval = numerical integer value */
   VNONRELOC,	/* info = result register */
   VLOCAL,	/* info = local register */
-  VUPVAL,       /* info = index of upvalue in 'upvalues' */
+  VUPVAL,       /* upvalue类型，info为upvalue表中的索引，会生成getupval指令 info = index of upvalue in 'upvalues' */
   VINDEXED,	/* t = table register/upvalue; idx = index R/K */
   VJMP,		/* info = instruction pc */
   VRELOCABLE,	/* info = instruction pc */
@@ -38,7 +38,7 @@ typedef enum {
 #define vkisvar(k)	(VLOCAL <= (k) && (k) <= VINDEXED)
 #define vkisinreg(k)	((k) == VNONRELOC || (k) == VLOCAL)
 
-/* 代码解析表达式 */
+/* 代码解析中的表达式描述符 */
 typedef struct expdesc {
   expkind k; //表达式类型
   union {

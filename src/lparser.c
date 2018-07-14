@@ -141,14 +141,14 @@ static TString *str_checkname (LexState *ls) {
   return ts;
 }
 
-
+/* 初始化表达式描述符 */
 static void init_exp (expdesc *e, expkind k, int i) {
   e->f = e->t = NO_JUMP;
-  e->k = k;
+  e->k = k;//类型
   e->u.info = i;
 }
 
-
+/* 字符串编码，以常量形式保存 */
 static void codestring (LexState *ls, expdesc *e, TString *s) {
   init_exp(e, VK, luaK_stringK(ls->fs, s));
 }
@@ -300,7 +300,7 @@ static void singlevar (LexState *ls, expdesc *var) {
   FuncState *fs = ls->fs;
   if (singlevaraux(fs, varname, var, 1) == VVOID) {  /* global name? */
     expdesc key;
-    singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
+    singlevaraux(fs, ls->envn, var, 1);  /* 搜索全局变量 get environment variable */
     lua_assert(var->k == VLOCAL || var->k == VUPVAL);
     codestring(ls, &key, varname);  /* key is variable name */
     luaK_indexed(fs, var, &key);  /* env[varname] */
@@ -493,7 +493,7 @@ static void leaveblock (FuncState *fs) {
 }
 
 
-/*
+/* 添加函数原型
 ** adds a new prototype into list of prototypes
 */
 static Proto *addprototype (LexState *ls) {
@@ -525,6 +525,7 @@ static void codeclosure (LexState *ls, expdesc *v) {
 }
 
 
+/* function解析初始化函数 */
 static void open_func (LexState *ls, FuncState *fs, BlockCnt *bl) {
   Proto *f;
   fs->prev = ls->fs;  /* linked list of funcstates */
@@ -539,21 +540,23 @@ static void open_func (LexState *ls, FuncState *fs, BlockCnt *bl) {
   fs->nups = 0;
   fs->nlocvars = 0;
   fs->nactvar = 0;
-  fs->firstlocal = ls->dyd->actvar.n;
+  fs->firstlocal = ls->dyd->actvar.n;//局部变量在动态结构体中的初始化计数
   fs->bl = NULL;
   f = fs->f;
   f->source = ls->source;
   f->maxstacksize = 2;  /* registers 0/1 are always valid */
-  enterblock(fs, bl, 0);
+  enterblock(fs, bl, 0);//block初始化
 }
 
-
+/* function解析结束后的清理操作 */
 static void close_func (LexState *ls) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
-  luaK_ret(fs, 0, 0);  /* final return */
+  luaK_ret(fs, 0, 0);  /* 添加一个默认return指令，以防函数body中没有设置 final return */
   leaveblock(fs);
+
+  /* 依次重置函数proto的指令、常量、子func、upvalue、局部变量数组的大小*/
   luaM_reallocvector(L, f->code, f->sizecode, fs->pc, Instruction);
   f->sizecode = fs->pc;
   luaM_reallocvector(L, f->lineinfo, f->sizelineinfo, fs->pc, int);
@@ -748,7 +751,7 @@ static void constructor (LexState *ls, expdesc *t) {
 /* }====================================================================== */
 
 
-
+/* 函数参数解析 */
 static void parlist (LexState *ls) {
   /* parlist -> [ param { ',' param } ] */
   FuncState *fs = ls->fs;
@@ -777,7 +780,7 @@ static void parlist (LexState *ls) {
   luaK_reserveregs(fs, fs->nactvar);  /* reserve register for parameters */
 }
 
-
+/* function body解析 */
 static void body (LexState *ls, expdesc *e, int ismethod, int line) {
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
@@ -786,17 +789,17 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line) {
   new_fs.f->linedefined = line;
   open_func(ls, &new_fs, &bl);
   checknext(ls, '(');
-  if (ismethod) {
+  if (ismethod) {//obj:method类型，在解析时会把obj作为参数，ismethod为此种类型的标志位
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
-  parlist(ls);
+  parlist(ls);//解析参数
   checknext(ls, ')');
-  statlist(ls);
+  statlist(ls);//解析函数statment
   new_fs.f->lastlinedefined = ls->linenumber;
   check_match(ls, TK_END, TK_FUNCTION, line);
-  codeclosure(ls, e);
-  close_func(ls);
+  codeclosure(ls, e);//生成闭包指令
+  close_func(ls);//清理
 }
 
 
@@ -1610,7 +1613,7 @@ static void statement (LexState *ls) {
 /* }====================================================================== */
 
 
-/*
+/* 主函数解析，一个lua文件或者一段lua代码，被虚拟机都解析成main function
 ** compiles the main function, which is a regular vararg function with an
 ** upvalue named LUA_ENV
 */
@@ -1620,11 +1623,11 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   open_func(ls, fs, &bl);
   fs->f->is_vararg = 2;  /* main function is always declared vararg */
   init_exp(&v, VLOCAL, 0);  /* create and... */
-  newupvalue(fs, ls->envn, &v);  /* ...set environment upvalue */
-  luaX_next(ls);  /* read first token */
-  statlist(ls);  /* parse main body */
+  newupvalue(fs, ls->envn, &v);  /* 添加全局环境变量  ...set environment upvalue */
+  luaX_next(ls);  /* 读取第一个关键字 read first token */
+  statlist(ls);  /*  解析函数语句 parse main body */
   check(ls, TK_EOS);
-  close_func(ls);
+  close_func(ls);//函数解析完毕后清理操作
 }
 
 

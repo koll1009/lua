@@ -306,7 +306,7 @@ static void freeexp (FuncState *fs, expdesc *e) {
 }
 
 
-/*
+/* 添加常量，使用1个scanner table实现重复检测
 ** Use scanner's table to cache position of constants in constant list
 ** and try to reuse constants
 */
@@ -336,15 +336,15 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
   return k;
 }
 
-
+/* 字符串常量编码，返回索引 */
 int luaK_stringK (FuncState *fs, TString *s) {
   TValue o;
   setsvalue(fs->ls->L, &o, s);
-  return addk(fs, &o, &o);
+  return addk(fs, &o, &o);//添加常量
 }
 
 
-/*
+/* 整数常量
 ** Integers use userdata as keys to avoid collision with floats with same
 ** value; conversion to 'void*' used only for hashing, no "precision"
 ** problems
@@ -363,7 +363,7 @@ static int luaK_numberK (FuncState *fs, lua_Number r) {
   return addk(fs, &o, &o);
 }
 
-
+/* 布尔常量 */
 static int boolK (FuncState *fs, int b) {
   TValue o;
   setbvalue(&o, b);
@@ -391,11 +391,11 @@ void luaK_setreturns (FuncState *fs, expdesc *e, int nresults) {
   }
 }
 
-
+/* 设置一个返回值 */
 void luaK_setoneret (FuncState *fs, expdesc *e) {
   if (e->k == VCALL) {  /* expression is an open function call? */
     e->k = VNONRELOC;
-    e->u.info = GETARG_A(getcode(fs, e));
+    e->u.info = GETARG_A(getcode(fs, e)); //
   }
   else if (e->k == VVARARG) {
     SETARG_B(getcode(fs, e), 2);
@@ -403,19 +403,19 @@ void luaK_setoneret (FuncState *fs, expdesc *e) {
   }
 }
 
-
+/*  */
 void luaK_dischargevars (FuncState *fs, expdesc *e) {
   switch (e->k) {
     case VLOCAL: {
       e->k = VNONRELOC;
       break;
     }
-    case VUPVAL: {
+    case VUPVAL: {//生成取upvalue指令，需要给结果分配寄存器地址
       e->u.info = luaK_codeABC(fs, OP_GETUPVAL, 0, e->u.info, 0);
       e->k = VRELOCABLE;
       break;
     }
-    case VINDEXED: {
+    case VINDEXED: {//table可以来自upvalue或者某局部变量，生成相应指令，需对结果分配寄存器地址
       OpCode op = OP_GETTABUP;  /* assume 't' is in an upvalue */
       freereg(fs, e->u.ind.idx);
       if (e->u.ind.vt == VLOCAL) {  /* 't' is in a register? */
@@ -427,7 +427,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
       break;
     }
     case VVARARG:
-    case VCALL: {
+    case VCALL: {//变参、函数调用，设置一个返回值
       luaK_setoneret(fs, e);
       break;
     }
@@ -516,7 +516,7 @@ static void exp2reg (FuncState *fs, expdesc *e, int reg) {
   e->k = VNONRELOC;
 }
 
-
+/* 把当前栈的空闲位置用于表达式e */
 void luaK_exp2nextreg (FuncState *fs, expdesc *e) {
   luaK_dischargevars(fs, e);
   freeexp(fs, e);
@@ -525,6 +525,7 @@ void luaK_exp2nextreg (FuncState *fs, expdesc *e) {
 }
 
 
+//
 int luaK_exp2anyreg (FuncState *fs, expdesc *e) {
   luaK_dischargevars(fs, e);
   if (e->k == VNONRELOC) {
@@ -553,6 +554,7 @@ void luaK_exp2val (FuncState *fs, expdesc *e) {
 }
 
 
+/* 表达式转成寄存器类型或者常量类型表达式 */
 int luaK_exp2RK (FuncState *fs, expdesc *e) {
   luaK_exp2val(fs, e);
   switch (e->k) {
@@ -585,7 +587,7 @@ int luaK_exp2RK (FuncState *fs, expdesc *e) {
     default: break;
   }
   /* not a constant in the right range: put it in a register */
-  return luaK_exp2anyreg(fs, e);
+  return luaK_exp2anyreg(fs, e);//生成寄存器指令
 }
 
 
@@ -734,6 +736,7 @@ static void codenot (FuncState *fs, expdesc *e) {
 }
 
 
+/* 表达式为取属性值类型，例如ta.field */
 void luaK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
   lua_assert(!hasjumps(t));
   t->u.ind.t = t->u.info;

@@ -53,7 +53,7 @@ void luaF_initupvals (lua_State *L, LClosure *cl) {
   }
 }
 
-
+/* upvalue查找，实现up value共享 */
 UpVal *luaF_findupval (lua_State *L, StkId level) {
   UpVal **pp = &L->openupval;
   UpVal *p;
@@ -95,7 +95,7 @@ void luaF_close (lua_State *L, StkId level) {
   }
 }
 
-
+/* 创建函数原型结构体 */
 Proto *luaF_newproto (lua_State *L) {
   GCObject *o = luaC_newobj(L, LUA_TPROTO, sizeof(Proto));
   Proto *f = gco2p(o);
