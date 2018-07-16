@@ -76,6 +76,7 @@ static int maxn (lua_State *L) {
 #endif
 
 
+/* table.insertº¯Êý */
 static int tinsert (lua_State *L) {
   lua_Integer e = aux_getn(L, 1, TAB_RW) + 1;  /* first empty element */
   lua_Integer pos;  /* where to insert new element */
@@ -421,7 +422,7 @@ static int sort (lua_State *L) {
 
 /* }====================================================== */
 
-
+/* table¿â */
 static const luaL_Reg tab_funcs[] = {
   {"concat", tconcat},
 #if defined(LUA_COMPAT_MAXN)

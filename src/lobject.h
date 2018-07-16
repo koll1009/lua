@@ -443,9 +443,10 @@ typedef struct UpVal UpVal;
 #define ClosureHeader \
 	CommonHeader; lu_byte nupvalues; GCObject *gclist
 
+/* C closure结构体 */
 typedef struct CClosure {
   ClosureHeader;
-  lua_CFunction f;
+  lua_CFunction f;//闭包对应的函数指针
   TValue upvalue[1];  /* list of upvalues */
 } CClosure;
 

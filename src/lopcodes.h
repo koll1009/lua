@@ -158,7 +158,7 @@ enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction format */
 */
 
 
-/*
+/* ָ�
 ** grep "ORDER OP" if you change these enums
 */
 

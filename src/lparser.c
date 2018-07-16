@@ -596,7 +596,7 @@ static int block_follow (LexState *ls, int withuntil) {
   }
 }
 
-
+/* lua语句解析 */
 static void statlist (LexState *ls) {
   /* statlist -> { stat [';'] } */
   while (!block_follow(ls, 1)) {
@@ -666,9 +666,10 @@ static void recfield (LexState *ls, struct ConsControl *cc) {
 }
 
 
+/*  */
 static void closelistfield (FuncState *fs, struct ConsControl *cc) {
   if (cc->v.k == VVOID) return;  /* there is no list item */
-  luaK_exp2nextreg(fs, &cc->v);
+  luaK_exp2nextreg(fs, &cc->v);//当前表达式入栈
   cc->v.k = VVOID;
   if (cc->tostore == LFIELDS_PER_FLUSH) {
     luaK_setlist(fs, cc->t->u.info, cc->na, cc->tostore);  /* flush */
@@ -691,7 +692,7 @@ static void lastlistfield (FuncState *fs, struct ConsControl *cc) {
   }
 }
 
-
+/*  */
 static void listfield (LexState *ls, struct ConsControl *cc) {
   /* listfield -> exp */
   expr(ls, &cc->v);
@@ -701,6 +702,7 @@ static void listfield (LexState *ls, struct ConsControl *cc) {
 }
 
 
+/* table的字段 */
 static void field (LexState *ls, struct ConsControl *cc) {
   /* field -> listfield | recfield */
   switch(ls->t.token) {
@@ -723,12 +725,13 @@ static void field (LexState *ls, struct ConsControl *cc) {
 }
 
 
+/* table构造表达式解析 */
 static void constructor (LexState *ls, expdesc *t) {
   /* constructor -> '{' [ field { sep field } [sep] ] '}'
      sep -> ',' | ';' */
   FuncState *fs = ls->fs;
   int line = ls->linenumber;
-  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);//生成create table命令
   struct ConsControl cc;
   cc.na = cc.nh = cc.tostore = 0;
   cc.t = t;
@@ -738,12 +741,15 @@ static void constructor (LexState *ls, expdesc *t) {
   checknext(ls, '{');
   do {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
-    if (ls->t.token == '}') break;
+    if (ls->t.token == '}')
+		break;
     closelistfield(fs, &cc);
-    field(ls, &cc);
+    field(ls, &cc);//
   } while (testnext(ls, ',') || testnext(ls, ';'));
   check_match(ls, '}', '{', line);
   lastlistfield(fs, &cc);
+
+  /* 重置table的大小 */
   SETARG_B(fs->f->code[pc], luaO_int2fb(cc.na)); /* set initial array size */
   SETARG_C(fs->f->code[pc], luaO_int2fb(cc.nh));  /* set initial table size */
 }
@@ -930,21 +936,22 @@ static void suffixedexp (LexState *ls, expdesc *v) {
 }
 
 
+/* 简单表达式解析 */
 static void simpleexp (LexState *ls, expdesc *v) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
-    case TK_FLT: {
+    case TK_FLT: {//浮点数
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       break;
     }
-    case TK_INT: {
+    case TK_INT: {//整型
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       break;
     }
-    case TK_STRING: {
+    case TK_STRING: {//把字符串编译成常量
       codestring(ls, v, ls->t.seminfo.ts);
       break;
     }
@@ -960,7 +967,7 @@ static void simpleexp (LexState *ls, expdesc *v) {
       init_exp(v, VFALSE, 0);
       break;
     }
-    case TK_DOTS: {  /* vararg */
+    case TK_DOTS: {  /* 变参 vararg */
       FuncState *fs = ls->fs;
       check_condition(ls, fs->f->is_vararg,
                       "cannot use '...' outside a vararg function");
@@ -985,7 +992,7 @@ static void simpleexp (LexState *ls, expdesc *v) {
   luaX_next(ls);
 }
 
-
+/* 取一元运算符 */
 static UnOpr getunopr (int op) {
   switch (op) {
     case TK_NOT: return OPR_NOT;
@@ -1052,14 +1059,15 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
-  uop = getunopr(ls->t.token);
-  if (uop != OPR_NOUNOPR) {
+  uop = getunopr(ls->t.token); //取一元运算符
+  if (uop != OPR_NOUNOPR) {//有一元运算符
     int line = ls->linenumber;
     luaX_next(ls);
     subexpr(ls, v, UNARY_PRIORITY);
     luaK_prefix(ls->fs, uop, v, line);
   }
-  else simpleexp(ls, v);
+  else simpleexp(ls, v);//无一元运算符
+
   /* expand while operators have priorities higher than 'limit' */
   op = getbinopr(ls->t.token);
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
@@ -1077,7 +1085,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
   return op;  /* return first untreated operator */
 }
 
-
+/* 表达式解析 */
 static void expr (LexState *ls, expdesc *v) {
   subexpr(ls, v, 0);
 }
@@ -1226,16 +1234,17 @@ static void skipnoopstat (LexState *ls) {
 }
 
 
+/* goto label */
 static void labelstat (LexState *ls, TString *label, int line) {
   /* label -> '::' NAME '::' */
   FuncState *fs = ls->fs;
   Labellist *ll = &ls->dyd->label;
   int l;  /* index of new label being created */
-  checkrepeated(fs, ll, label);  /* check for repeated labels */
+  checkrepeated(fs, ll, label);  /* 查重 check for repeated labels */
   checknext(ls, TK_DBCOLON);  /* skip double colon */
   /* create new entry for this label */
   l = newlabelentry(ls, ll, label, line, fs->pc);
-  skipnoopstat(ls);  /* skip other no-op statements */
+  skipnoopstat(ls);  /* 跳过空语句 skip other no-op statements */
   if (block_follow(ls, 0)) {  /* label is last no-op statement in the block? */
     /* assume that locals are already out of scope */
     ll->arr[l].nactvar = fs->bl->nactvar;
@@ -1541,7 +1550,7 @@ static void retstat (LexState *ls) {
   testnext(ls, ';');  /* skip optional semicolon */
 }
 
-
+/* lua语句解析 */
 static void statement (LexState *ls) {
   int line = ls->linenumber;  /* may be needed for error messages */
   enterlevel(ls);

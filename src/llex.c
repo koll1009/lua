@@ -158,7 +158,7 @@ static void inclinenumber (LexState *ls) {
     lexerror(ls, "chunk has too many lines", 0);
 }
 
-
+/* 初始化词法分析器 */
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
   ls->t.token = 0;

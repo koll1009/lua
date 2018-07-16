@@ -112,7 +112,7 @@ static int l_hashfloat (lua_Number n) {
 #endif
 
 
-/*
+/* key的哈希值对应的main position，即哈希值直接映射到node数组中的索引
 ** returns the 'main' position of an element in a table (that is, the index
 ** of its hash value)
 */
@@ -423,6 +423,7 @@ void luaH_free (lua_State *L, Table *t) {
 }
 
 
+/* 取空闲节点 */
 static Node *getfreepos (Table *t) {
   while (t->lastfree > t->node) {
     t->lastfree--;
@@ -434,7 +435,7 @@ static Node *getfreepos (Table *t) {
 
 
 
-/*
+/* 新插入一个key，返回相应的value值指针
 ** inserts a new key into a hash table; first, check whether key's main
 ** position is free. If not, check whether colliding node is in its main
 ** position or not: if it is not, move colliding node to an empty place and
@@ -444,8 +445,9 @@ static Node *getfreepos (Table *t) {
 TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
   Node *mp;
   TValue aux;
-  if (ttisnil(key)) luaG_runerror(L, "table index is nil");
-  else if (ttisfloat(key)) {
+  if (ttisnil(key)) 
+	  luaG_runerror(L, "table index is nil");
+  else if (ttisfloat(key)) {//如果key是浮点数，先尝试转换成整型
     lua_Integer k;
     if (luaV_tointeger(key, &k, 0)) {  /* index is int? */
       setivalue(&aux, k);
